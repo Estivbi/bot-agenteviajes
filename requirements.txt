@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-telegram-bot
+psycopg2-binary
+pydantic
+requests
+python-dotenv
+pytest
+scikit-learn
+prophet
