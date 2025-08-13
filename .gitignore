@@ -26,3 +26,6 @@ htmlcov/
 # Archivos de configuración de IDE
 .vscode/
 .idea/
+
+# para bot telegram
+.env
