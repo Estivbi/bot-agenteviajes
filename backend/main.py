@@ -7,15 +7,20 @@ import datetime
 import db
 import json
 
-app = FastAPI()
+# configuración de la app fastapi
+app = FastAPI(
+    title="Bot Agente Viajes API",
+    description="API REST para gestión de alertas de vuelos",
+    version="1.0.0"
+)
 
-
+# Endpoint simple para verificar que la API está funcionando
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-# Ejemplo real: endpoint que lista usuarios desde la base de datos
+# Devuelve todos los usuarios registrados en el sistema
 @app.get("/users")
 def list_users():
     """
@@ -32,7 +37,7 @@ def list_users():
     ]
     return {"users": users}
 
-
+# Modelo de datos para crear un usuario nuevo
 class UserCreate(BaseModel):
     telegram_user_id: int = Field(..., description="ID del usuario de Telegram")
 
@@ -65,7 +70,7 @@ def create_user(user: UserCreate):
     return {"message": "Usuario creado exitosamente", "user_id": user_id}
 
 
-# GET /alerts?user_id=123
+# Devuelve todas las alertas activas de un usuario específico
 @app.get("/alerts")
 def list_alerts(user_id: int = Query(..., description="ID del usuario")):
     """
@@ -104,7 +109,7 @@ def list_alerts(user_id: int = Query(..., description="ID del usuario")):
     return {"alerts": alerts}
 
 
-# GET /alerts/{id}/price-history
+# Devuelve el historial completo de búsquedas y precios de una alerta
 @app.get("/alerts/{alert_id}/price-history")
 def get_alert_price_history(alert_id: int):
     """
@@ -148,7 +153,7 @@ def get_alert_price_history(alert_id: int):
     return {"alert_id": alert_id, "price_history": history}
 
 
-# DELETE /alerts/{id}
+# Marca una alerta como inactiva (soft delete)
 @app.delete("/alerts/{alert_id}")
 def delete_alert(alert_id: int):
     """
@@ -269,6 +274,7 @@ class AlertCreate(BaseModel):
     max_stops: Optional[int] = Field(None, description="Escalas máximas (opcional)")
     airports_alternatives: Optional[List[str]] = Field(None, description="Aeropuertos alternativos (opcional)")
 
+# Crea una nueva alerta de vuelo para un usuario
 @app.post("/alerts")
 def create_alert(alert: AlertCreate):
     """
@@ -309,7 +315,7 @@ def create_alert(alert: AlertCreate):
     return {"alert_id": alert_id, "message": "Alerta creada correctamente"}
 
 
-# POST /check-now - Trigger manual para búsqueda
+# Lanza una búsqueda inmediata de precios para testing
 @app.post("/check-now/{alert_id}")
 def check_alert_now(alert_id: int):
     """
@@ -326,7 +332,7 @@ def check_alert_now(alert_id: int):
             raise HTTPException(status_code=404, detail="Alerta no encontrada")
         
         # Por ahora, insertamos un precio de ejemplo (más tarde conectaremos con APIs reales)
-        # En un caso real, aquí llamarías a la API de Tequila/Amadeus
+        # En un caso real, aquí llamo a la API de Tequila/Amadeus por ejemplo o kiwi
         example_price = 15000  # 150€ en céntimos
         
         cur.execute(
@@ -356,7 +362,7 @@ def check_alert_now(alert_id: int):
         "price_found": f"{example_price/100}€"
     }
 
-
+# lanzo server
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
