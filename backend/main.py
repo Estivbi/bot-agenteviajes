@@ -6,6 +6,12 @@ from datetime import datetime
 import datetime
 import db
 import json
+import os
+from dotenv import load_dotenv
+from flights_api import flights_api, search_flights_for_alert
+
+# Cargar variables de entorno
+load_dotenv()
 
 # configuración de la app fastapi
 app = FastAPI(
@@ -361,6 +367,198 @@ def check_alert_now(alert_id: int):
         "snapshot_id": snapshot_id,
         "price_found": f"{example_price/100}€"
     }
+
+# ============================================================================
+# ENDPOINTS PARA API DE VUELOS REALES
+# ============================================================================
+
+class FlightSearchRequest(BaseModel):
+    origin: str = Field(..., description="Código IATA del aeropuerto de origen", min_length=3, max_length=3)
+    destination: str = Field(..., description="Código IATA del aeropuerto de destino", min_length=3, max_length=3)
+    date_from: str = Field(..., description="Fecha de salida (DD/MM/YYYY)")
+    date_to: Optional[str] = Field(None, description="Fecha hasta para salida (DD/MM/YYYY)")
+    return_from: Optional[str] = Field(None, description="Fecha de regreso desde (DD/MM/YYYY)")
+    return_to: Optional[str] = Field(None, description="Fecha de regreso hasta (DD/MM/YYYY)")
+    max_stopovers: int = Field(2, description="Máximo número de escalas")
+    limit: int = Field(10, description="Límite de resultados")
+
+@app.post("/flights/search")
+def search_flights(request: FlightSearchRequest):
+    """
+    Busca vuelos reales usando la API de Tequila/Kiwi.com.
+    
+    Este endpoint permite buscar vuelos en tiempo real con precios actuales.
+    Si no hay API key configurada, devuelve datos mock para testing.
+    """
+    try:
+        # Validar códigos IATA
+        if request.origin.upper() == request.destination.upper():
+            raise HTTPException(status_code=400, detail="El origen y destino no pueden ser iguales")
+        
+        # Buscar vuelos usando la API
+        result = flights_api.search_flights(
+            origin=request.origin.upper(),
+            destination=request.destination.upper(),
+            date_from=request.date_from,
+            date_to=request.date_to,
+            return_from=request.return_from,
+            return_to=request.return_to,
+            max_stopovers=request.max_stopovers,
+            limit=request.limit
+        )
+        
+        if not result['success']:
+            raise HTTPException(status_code=500, detail=result.get('error', 'Error buscando vuelos'))
+        
+        return {
+            "success": True,
+            "flights": result['flights'],
+            "total_results": result['total_results'],
+            "api_used": result.get('api_used', 'tequila'),
+            "search_params": {
+                "origin": request.origin.upper(),
+                "destination": request.destination.upper(),
+                "date_from": request.date_from,
+                "return_from": request.return_from,
+                "max_stopovers": request.max_stopovers
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@app.get("/flights/locations")
+def search_locations(query: str = Query(..., description="Nombre de ciudad o aeropuerto para buscar")):
+    """
+    Busca códigos IATA de aeropuertos/ciudades.
+    
+    Útil para autocompletar y validar códigos IATA.
+    """
+    try:
+        if len(query.strip()) < 2:
+            raise HTTPException(status_code=400, detail="La búsqueda debe tener al menos 2 caracteres")
+        
+        result = flights_api.get_locations(query)
+        
+        if not result['success']:
+            raise HTTPException(status_code=500, detail=result.get('error', 'Error buscando ubicaciones'))
+        
+        return {
+            "success": True,
+            "locations": result['locations'],
+            "query": query
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+@app.post("/alerts/{alert_id}/search-real")
+def search_flights_for_alert_endpoint(alert_id: int):
+    """
+    Busca vuelos reales para una alerta específica y guarda el resultado.
+    
+    Este endpoint toma los parámetros de una alerta existente y busca vuelos
+    reales usando la API de Tequila, guardando los resultados en el historial.
+    """
+    conn = db.get_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Obtener datos de la alerta
+        cur.execute("""
+            SELECT user_id, origin, destination, date_from, date_to, max_stops 
+            FROM alerts WHERE id = %s AND is_active = true
+        """, (alert_id,))
+        
+        alert_data = cur.fetchone()
+        if not alert_data:
+            raise HTTPException(status_code=404, detail="Alerta no encontrada o inactiva")
+        
+        user_id, origin, destination, date_from, date_to, max_stops = alert_data
+        
+        # Buscar vuelos reales
+        search_result = flights_api.search_flights(
+            origin=origin,
+            destination=destination,
+            date_from=date_from.strftime('%d/%m/%Y'),
+            return_from=date_to.strftime('%d/%m/%Y') if date_to else None,
+            max_stopovers=max_stops or 2,
+            limit=5
+        )
+        
+        if not search_result['success']:
+            raise HTTPException(status_code=500, detail=f"Error buscando vuelos: {search_result.get('error')}")
+        
+        flights = search_result['flights']
+        if not flights:
+            # Guardar búsqueda sin resultados
+            cur.execute("""
+                INSERT INTO search_snapshots (alert_id, price_cents, found_at, details)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id
+            """, (alert_id, None, datetime.datetime.now(), json.dumps({"message": "No flights found"})))
+            
+            snapshot_id = cur.fetchone()[0]
+            conn.commit()
+            
+            return {
+                "success": True,
+                "message": "Búsqueda completada pero no se encontraron vuelos",
+                "flights_found": 0,
+                "snapshot_id": snapshot_id,
+                "api_used": search_result.get('api_used')
+            }
+        
+        # Guardar el mejor precio encontrado
+        best_flight = min(flights, key=lambda x: x.get('price_euros', 9999))
+        best_price_cents = int(best_flight['price_euros'] * 100)
+        
+        # Guardar en historial
+        cur.execute("""
+            INSERT INTO search_snapshots (alert_id, price_cents, found_at, details)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+        """, (alert_id, best_price_cents, datetime.datetime.now(), json.dumps({
+            "flights_found": len(flights),
+            "best_price_euros": best_flight['price_euros'],
+            "best_flight": best_flight,
+            "api_used": search_result.get('api_used'),
+            "total_results": len(flights)
+        })))
+        
+        snapshot_id = cur.fetchone()[0]
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": f"Búsqueda completada para alerta {alert_id}",
+            "flights_found": len(flights),
+            "best_price_euros": best_flight['price_euros'],
+            "best_flight": {
+                "price": best_flight['price_euros'],
+                "origin": best_flight['origin'],
+                "destination": best_flight['destination'],
+                "departure": best_flight['departure_time'],
+                "airline": best_flight['airlines'][0] if best_flight['airlines'] else 'Unknown',
+                "stops": best_flight['stops']
+            },
+            "snapshot_id": snapshot_id,
+            "api_used": search_result.get('api_used')
+        }
+        
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
 
 # lanzo server
 if __name__ == "__main__":
