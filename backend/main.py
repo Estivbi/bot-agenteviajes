@@ -8,7 +8,7 @@ import db
 import json
 import os
 from dotenv import load_dotenv
-from flights_api import flights_api, search_flights_for_alert
+from backend.flights_api import flights_api, search_flights_for_alert
 
 # Cargar variables de entorno
 load_dotenv()
