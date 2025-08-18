@@ -27,15 +27,15 @@ CREATE TABLE IF NOT EXISTS alerts (
 CREATE TABLE IF NOT EXISTS search_snapshots (
     id SERIAL PRIMARY KEY,
     alert_id INTEGER REFERENCES alerts(id),
-    searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    found_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     price_cents INTEGER,
-    raw_response JSONB
+    details JSONB
 );
 
 -- Tabla de notificaciones enviadas
 CREATE TABLE IF NOT EXISTS notifications_sent (
     id SERIAL PRIMARY KEY,
     alert_id INTEGER REFERENCES alerts(id),
-    snapshot_id INTEGER REFERENCES search_snapshots(id),
+    price_cents INTEGER,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
