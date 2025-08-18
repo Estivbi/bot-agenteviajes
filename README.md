@@ -2,17 +2,29 @@
 
 Sistema completo para detectar vuelos baratos con alertas personalizadas y notificaciones por Telegram.
 
-## 🏗️ Arquitectura del Sistema
+## � **API de Vuelos: Kiwi.com via RapidAPI**
+- **300 búsquedas gratuitas/mes** sin tarjeta de crédito
+- **Datos reales de vuelos** de Kiwi.com (precios desde 53€)
+- **Respuesta en español** con moneda en euros
+- **Enlaces de reserva válidos** directos a Kiwi.com
+
+## �🏗️ Arquitectura del Sistema
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Telegram Bot  │◄──►│  FastAPI Backend │◄──►│  PostgreSQL DB  │
 │                 │    │                  │    │                 │
 │ • Interfaz user │    │ • API REST       │    │ • Alertas       │
-│ • Crear alertas │    │ • Lógica negocio │    │ • Usuarios      │
+│ • Crear alertas │    │ • RapidAPI Kiwi  │    │ • Usuarios      │
 │ • Ver alertas   │    │ • CRUD completo  │    │ • Historial     │
 │ • Eliminar      │    │ • 8 endpoints    │    │ • Notificaciones│
 └─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                        │
+         └────────────────────────┼─────────► RapidAPI Kiwi.com
+                                  │           300 búsquedas/mes
+                                  │           Datos reales de vuelos
+                                  └─────────► Worker Background
+                                             Monitoreo automático
 ```
 
 ## 📁 Estructura del Proyecto
@@ -48,8 +60,24 @@ cd bot-agenteviajes
 python3 -m venv venv
 source venv/bin/activate
 
+```bash
 # Instalar dependencias
 pip install fastapi uvicorn psycopg2-binary python-telegram-bot python-dotenv requests
+
+# Configurar RapidAPI Kiwi.com (300 búsquedas/mes gratis)
+# 1. Regístrate en: https://rapidapi.com/kiwi.com1/api/cheap-flights
+# 2. Crea cuenta gratuita (sin tarjeta de crédito)
+# 3. Obtén tu API key para "Cheap Flights"
+```
+
+### 2. Variables de Entorno
+
+```bash
+# En el archivo .env del bot
+RAPIDAPI_KEY=tu_clave_rapidapi_aquí
+
+# En el archivo backend/.env  
+RAPIDAPI_KEY=tu_clave_rapidapi_aquí
 ```
 
 ### 2. Base de Datos (PostgreSQL con Docker)
@@ -59,10 +87,10 @@ pip install fastapi uvicorn psycopg2-binary python-telegram-bot python-dotenv re
 docker-compose up -d
 
 # La base de datos se crea automáticamente con el schema
-# Usuario: postgres | Password: password | DB: flight_alerts
+# Usuario: ++++ | Password: ++++++ | DB: vuelos
 ```
 
-### 3. Backend API
+### 3. Backend API con Kiwi.com
 
 ```bash
 # Desde el directorio raíz
@@ -71,15 +99,37 @@ python main.py
 
 # API disponible en: http://localhost:8000
 # Documentación: http://localhost:8000/docs
+
+# ✅ Ya integrado con RapidAPI Kiwi.com
+# ✅ 300 búsquedas gratuitas/mes
+# ✅ Datos reales de vuelos desde 53€
+```
+
+### 4. Worker Background (Monitoreo Automático)
+
+```bash
+# Worker para monitoreo automático de alertas
+cd worker
+./start_worker.sh
+
+# O manualmente:
+python3 worker.py
+
+# ✅ Revisa alertas cada 15 minutos
+# ✅ Envía notificaciones automáticas por Telegram
+# ✅ Actualiza historial de precios automáticamente
+# ✅ Proceso 24/7 en background
 ```
 
 ### 4. Bot de Telegram
 
 ```bash
-# Configurar token en bot/.env
+# Configurar tokens en bot/.env
 cd bot
 cp .env.example .env
-# Editar .env con tu TELEGRAM_BOT_TOKEN
+# Editar .env con:
+# - TELEGRAM_BOT_TOKEN (de @BotFather)  
+# - RAPIDAPI_KEY (de RapidAPI Kiwi.com)
 
 # Ejecutar bot
 python bot.py
@@ -87,14 +137,30 @@ python bot.py
 
 ## 🛠️ Funcionalidades Implementadas
 
+### ✅ API de Vuelos (RapidAPI Kiwi.com)
+- **300 búsquedas gratuitas/mes** sin necesidad de tarjeta
+- **Datos reales de Kiwi.com** (precios desde 53€ MAD→BCN)
+- **Respuesta en español** con moneda euros
+- **Enlaces de reserva válidos** directos a Kiwi.com
+- **Mapeo de 30+ aeropuertos** principales mundiales
+
 ### ✅ Backend API (FastAPI)
 - **8 Endpoints REST** completamente funcionales
 - **Health check** (`/health`)
 - **CRUD Usuarios** (`GET/POST /users`)
 - **CRUD Alertas** (`GET/POST/DELETE /alerts`)
 - **Historial de precios** (`/alerts/{id}/price-history`)
-- **Búsquedas manuales** (`/search`)
+- **Búsquedas manuales** (`/search`) con RapidAPI Kiwi.com
 - **Base de datos PostgreSQL** con 4 tablas relacionadas
+
+### ✅ Worker Background
+- **Monitoreo automático cada 15 minutos** de alertas activas
+- **Notificaciones por Telegram** cuando encuentra precios objetivo
+- **Historial de precios** actualizado automáticamente
+- **Anti-spam**: No envía múltiples notificaciones por la misma alerta en 24h
+- **Procesamiento asíncrono** sin bloquear la API
+- **Logging completo** para debugging y monitoreo
+- **Script de inicio automatizado** con `start_worker.sh`
 
 ### ✅ Bot de Telegram
 - **Interfaz conversacional** completa
@@ -156,25 +222,26 @@ notifications_sent
 
 ## 📖 Documentación Adicional
 
-- **[LEVANTAR_SERVIDORES.md](./LEVANTAR_SERVIDORES.md)** - Guía completa de instalación y configuración
 - **[bot/README_BOT.md](./bot/README_BOT.md)** - Documentación específica del bot de Telegram
 - **API Docs** - Disponible en `http://localhost:8000/docs` cuando el backend esté corriendo
 
 ## 🔄 Estado del Proyecto
 
 ### ✅ Completado
-- ✅ Backend API completo (8 endpoints)
-- ✅ Base de datos PostgreSQL funcional
-- ✅ Bot Telegram con todas las funcionalidades básicas
-- ✅ Integración backend-bot-database
-- ✅ Documentación y setup completo
+- ✅ **Backend API completo** (8 endpoints) con RapidAPI Kiwi.com
+- ✅ **Base de datos PostgreSQL** funcional con 4 tablas
+- ✅ **Bot Telegram** con todas las funcionalidades básicas
+- ✅ **Worker de monitoreo automático** con notificaciones 24/7
+- ✅ **Integración completa** backend-bot-database-worker
+- ✅ **Documentación completa** y setup automatizado
+- ✅ **300 búsquedas/mes gratuitas** con RapidAPI Kiwi.com
 
 ### 🚧 Próximamente
-- ⏳ Integración APIs de vuelos reales (Tequila/Amadeus)
-- ⏳ Worker/Poller automático para precio
-- ⏳ Notificaciones push automáticas
-- ⏳ Interface web alternativa
-- ⏳ Sistema de ML para predicción de precios
+- ⏳ **Interface web** alternativa para gestión de alertas
+- ⏳ **Sistema de ML** para predicción de precios
+- ⏳ **Múltiples APIs** de vuelos (Amadeus, Skyscanner)
+- ⏳ **Dashboard de analytics** para tendencias de precios
+- ⏳ **Alertas por email** además de Telegram
 
 ## 🤝 Contribución
 
