@@ -517,30 +517,28 @@ async def create_alert_api_call(update: Update, context: ContextTypes.DEFAULT_TY
     date_from = context.user_data['date_from']
     date_to = context.user_data.get('date_to')
     price_target = context.user_data.get('price_target_cents')
-    
+    iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
     summary = f"✅ ¡Alerta creada exitosamente!\n\n"
     summary += f"🛫 Ruta: {origin} → {destination}\n"
     summary += f"📅 Salida: {date_from.strftime('%d/%m/%Y')}\n"
-    
     if date_to:
         summary += f"🔄 Regreso: {date_to.strftime('%d/%m/%Y')}\n"
-    
     if price_target:
         summary += f"💰 Precio objetivo: {price_target/100:.2f}€\n"
-    
-    summary += f"\n🔔 Te notificaré cuando encuentre precios interesantes."
-    
+    summary += f"\n🔔 Te notificaré cuando encuentre precios interesantes.\n\n{iata_link}"
     # Limpiar datos temporales
     context.user_data.clear()
-    
     keyboard = [
         [InlineKeyboardButton("📋 Ver Mis Alertas", callback_data="my_alerts")],
         [InlineKeyboardButton("🆕 Crear Otra Alerta", callback_data="create_alert")],
         [InlineKeyboardButton("🏠 Menú Principal", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(summary, reply_markup=reply_markup)
+    # Detectar si viene de callback o mensaje
+    if hasattr(update, 'callback_query') and update.callback_query:
+        await update.callback_query.edit_message_text(summary, reply_markup=reply_markup, parse_mode='Markdown')
+    else:
+        await update.message.reply_text(summary, reply_markup=reply_markup, parse_mode='Markdown')
 
 # ============================================================================
 # COMANDO: /cancel
