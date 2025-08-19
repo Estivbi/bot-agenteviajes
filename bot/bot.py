@@ -259,7 +259,8 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     # Agregar botones para gestionar alertas
     keyboard = [
         [InlineKeyboardButton("🆕 Nueva Alerta", callback_data="create_alert")],
-        [InlineKeyboardButton("🗑️ Eliminar Alerta", callback_data="delete_alert")]
+        [InlineKeyboardButton("🗑️ Eliminar Alerta", callback_data="delete_alert")],
+        [InlineKeyboardButton("🏠 Menú Principal", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
@@ -383,18 +384,19 @@ async def handle_return_date(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if query.data == "no_return":
         context.user_data['date_to'] = None
         await query.edit_message_text(
-            "✅ Vuelo de **solo ida**\n\n"
-            "Ingresa tu **precio objetivo máximo** en euros (opcional):\n"
+            "✅ Vuelo de <b>solo ida</b>\n\n"
+            "Ingresa tu <b>precio objetivo máximo</b> en euros (opcional):\n"
             "Ejemplo: 150\n\n"
             "O escribe 'skip' para omitir.",
-            parse_mode='Markdown'
+            parse_mode='HTML'
         )
         return PRICE_TARGET
     
     elif query.data == "with_return":
         await query.edit_message_text(
-            "Ingresa la **fecha de regreso** (formato: DD/MM/YYYY):\n"
-            "Debe ser posterior a la fecha de salida."
+            "Ingresa la <b>fecha de regreso</b> (formato: DD/MM/YYYY):\n"
+            "Debe ser posterior a la fecha de salida.",
+            parse_mode='HTML'
         )
         return DATE_TO
 
@@ -417,11 +419,11 @@ async def get_date_to(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data['date_to'] = date_to
         
         await update.message.reply_text(
-            f"✅ Fecha de regreso: **{date_to.strftime('%d/%m/%Y')}**\n\n"
-            f"Ingresa tu **precio objetivo máximo** en euros (opcional):\n"
+            f"✅ Fecha de regreso: <b>{date_to.strftime('%d/%m/%Y')}</b>\n\n"
+            f"Ingresa tu <b>precio objetivo máximo</b> en euros (opcional):\n"
             f"Ejemplo: 150\n\n"
             f"O escribe 'skip' para omitir.",
-            parse_mode='Markdown'
+            parse_mode='HTML'
         )
         
         return PRICE_TARGET
