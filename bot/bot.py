@@ -240,7 +240,7 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text(message_text, reply_markup=reply_markup)
         return
 
-    message = "📋 <b>Tus alertas activas:</b><\n><\n>"
+    message = "📋 <b>Tus alertas activas:</b>\n\n"
     
     for i, alert in enumerate(alerts, 1):
         origin = alert["origin"]
@@ -248,13 +248,13 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         date_from = alert["date_from"]
         date_to = alert["date_to"]
         price_target = alert["price_target_cents"]
-        message += f"{i}. {origin} → {destination}<\n>"
-        message += f"📅 Salida: {date_from}<\n>"
+        message += f"{i}. {origin} → {destination}\n"
+        message += f"📅 Salida: {date_from}\n"
         if date_to:
-            message += f"🔄 Regreso: {date_to}<\n>"
+            message += f"🔄 Regreso: {date_to}\n"
         if price_target:
-            message += f"💰 Precio objetivo: {price_target/100:.2f}€<\n>"
-        message += f"🆔 ID: {alert['id']}<\n><\n>"
+            message += f"💰 Precio objetivo: {price_target/100:.2f}€\n"
+        message += f"🆔 ID: {alert['id']}\n\n"
 
     # Agregar botones para gestionar alertas
     keyboard = [
@@ -279,10 +279,10 @@ async def start_create_alert(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     iata_link = '<a href="https://www.iata.org/en/publications/directories/code-search/">Consulta la lista completa de códigos IATA aquí</a>'
     mensaje = (
-        "🛫 <b>Crear Nueva Alerta</b><\n><\n>"
-        "Por favor, ingresa el aeropuerto de <b>origen</b> (código IATA):<\n>"
-        "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)<\n><\n>"
-        f"{iata_link}<\n><\n>"
+        "🛫 <b>Crear Nueva Alerta</b>\n\n"
+        "Por favor, ingresa el aeropuerto de <b>origen</b> (código IATA):\n"
+        "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)\n\n"
+        f"{iata_link}\n\n"
         "Usa /cancel para cancelar."
     )
     if query:
@@ -306,9 +306,9 @@ async def get_origin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['origin'] = origin
     iata_link = '<a href="https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA">Consulta la lista completa de códigos IATA aquí</a>'
     mensaje = (
-        f"✅ Origen: <b>{origin}</b><\n><\n>"
-        "Ahora ingresa el aeropuerto de <b>destino</b> (código IATA):<\n>"
-        "Ejemplo: BCN (Barcelona), LHR (Londres), CDG (París)<\n><\n>"
+        f"✅ Origen: <b>{origin}</b>\n\n"
+        "Ahora ingresa el aeropuerto de <b>destino</b> (código IATA):\n"
+        "Ejemplo: BCN (Barcelona), LHR (Londres), CDG (París)\n\n"
         f"{iata_link}"
     )
     await update.message.reply_text(mensaje, parse_mode='HTML')
@@ -332,8 +332,8 @@ async def get_destination(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return DESTINATION
     context.user_data['destination'] = destination
     await update.message.reply_text(
-        f"✅ Destino: <b>{destination}</b><\n><\n>"
-        f"Ingresa la <b>fecha de salida</b> (formato: DD/MM/YYYY):<\n>"
+        f"✅ Destino: <b>{destination}</b>\n\n"
+        f"Ingresa la <b>fecha de salida</b> (formato: DD/MM/YYYY):\n"
         f"Ejemplo: 15/09/2025",
         parse_mode='HTML'
     )
@@ -361,7 +361,7 @@ async def get_date_from(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            f"✅ Fecha de salida: <b>{date_from.strftime('%d/%m/%Y')}</b><\n><\n>"
+            f"✅ Fecha de salida: <b>{date_from.strftime('%d/%m/%Y')}</b>\n\n"
             f"¿Necesitas vuelo de regreso?",
             reply_markup=reply_markup,
             parse_mode='HTML'
@@ -383,9 +383,9 @@ async def handle_return_date(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if query.data == "no_return":
         context.user_data['date_to'] = None
         await query.edit_message_text(
-            "✅ Vuelo de **solo ida**<\n><\n>"
-            "Ingresa tu **precio objetivo máximo** en euros (opcional):<\n>"
-            "Ejemplo: 150<\n><\n>"
+            "✅ Vuelo de **solo ida**\n\n"
+            "Ingresa tu **precio objetivo máximo** en euros (opcional):\n"
+            "Ejemplo: 150\n\n"
             "O escribe 'skip' para omitir.",
             parse_mode='Markdown'
         )
@@ -393,7 +393,7 @@ async def handle_return_date(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     elif query.data == "with_return":
         await query.edit_message_text(
-            "Ingresa la **fecha de regreso** (formato: DD/MM/YYYY):<\n>"
+            "Ingresa la **fecha de regreso** (formato: DD/MM/YYYY):\n"
             "Debe ser posterior a la fecha de salida."
         )
         return DATE_TO
@@ -417,9 +417,9 @@ async def get_date_to(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data['date_to'] = date_to
         
         await update.message.reply_text(
-            f"✅ Fecha de regreso: **{date_to.strftime('%d/%m/%Y')}**<\n><\n>"
-            f"Ingresa tu **precio objetivo máximo** en euros (opcional):<\n>"
-            f"Ejemplo: 150<\n><\n>"
+            f"✅ Fecha de regreso: **{date_to.strftime('%d/%m/%Y')}**\n\n"
+            f"Ingresa tu **precio objetivo máximo** en euros (opcional):\n"
+            f"Ejemplo: 150\n\n"
             f"O escribe 'skip' para omitir.",
             parse_mode='Markdown'
         )
@@ -563,17 +563,14 @@ async def show_delete_alerts_menu(update: Update, context: ContextTypes.DEFAULT_
         )
         return
 
-    message = "🗑️ Selecciona la alerta que quieres eliminar:<\n><\n>"
+    message = "🗑️ Selecciona la alerta que quieres eliminar:\n\n"
     keyboard = []
-    
     for i, alert in enumerate(alerts, 1):
         origin = alert["origin"]
         destination = alert["destination"]
         date_from = alert["date_from"]
-        
-        # Línea de información de la alerta
         alert_info = f"{i}. {origin} → {destination} ({date_from})"
-        message += f"{alert_info}<\n>"
+        message += f"{alert_info}\n"
         
         # Botón para eliminar esta alerta específica
         keyboard.append([InlineKeyboardButton(f"❌ Eliminar #{i}", callback_data=f"delete_{alert['id']}")])
@@ -606,7 +603,7 @@ async def delete_alert(update: Update, context: ContextTypes.DEFAULT_TYPE, alert
         return
     
     # Confirmar eliminación exitosa
-    success_message = "✅ Alerta eliminada exitosamente.<\n><\n>¿Qué te gustaría hacer ahora?"
+    success_message = "✅ Alerta eliminada exitosamente.\n\n¿Qué te gustaría hacer ahora?"
     keyboard = [
         [InlineKeyboardButton("📋 Ver Mis Alertas", callback_data="my_alerts")],
         [InlineKeyboardButton("🆕 Crear Nueva Alerta", callback_data="create_alert")],
