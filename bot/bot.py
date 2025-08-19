@@ -468,6 +468,16 @@ async def create_alert_api_call(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("❌ Error al crear la alerta.")
         return
 
+    # Comprobar que todos los datos requeridos existen en context.user_data
+    required_fields = ['origin', 'destination', 'date_from']
+    missing_fields = [f for f in required_fields if f not in context.user_data]
+    if missing_fields:
+        await update.message.reply_text(
+            f"❌ Faltan datos para crear la alerta: {', '.join(missing_fields)}. Por favor, reinicia el proceso."
+        )
+        context.user_data.clear()
+        return
+
     # Preparar datos para el API
     alert_data = {
         "user_id": user_id,
@@ -481,27 +491,29 @@ async def create_alert_api_call(update: Update, context: ContextTypes.DEFAULT_TY
 
     # Llamar al API
     response = call_api("/alerts", "POST", alert_data)
-    
+
     if "error" in response:
         await update.message.reply_text(
             f"❌ Error al crear la alerta: {response['error']}"
         )
         return
 
-    # Mostrar resumen de la alerta creada
+    # Mostrar resumen de la alerta creada (formato HTML seguro para Telegram)
     origin = context.user_data['origin']
     destination = context.user_data['destination']
     date_from = context.user_data['date_from']
     date_to = context.user_data.get('date_to')
     price_target = context.user_data.get('price_target_cents')
-    iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
-    summary = f"✅ ¡Alerta creada exitosamente!\n\n"
-    summary += f"🛫 Ruta: {origin} → {destination}\n"
-    summary += f"📅 Salida: {date_from.strftime('%d/%m/%Y')}\n"
+    iata_link = '<a href="https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA">Consulta la lista completa de códigos IATA aquí</a>'
+    summary = (
+        "✅ <b>¡Alerta creada exitosamente!</b>\n\n"
+        f"🛫 <b>Ruta:</b> {origin} → {destination}\n"
+        f"📅 <b>Salida:</b> {date_from.strftime('%d/%m/%Y')}\n"
+    )
     if date_to:
-        summary += f"🔄 Regreso: {date_to.strftime('%d/%m/%Y')}\n"
+        summary += f"🔄 <b>Regreso:</b> {date_to.strftime('%d/%m/%Y')}\n"
     if price_target:
-        summary += f"💰 Precio objetivo: {price_target/100:.2f}€\n"
+        summary += f"💰 <b>Precio objetivo:</b> {price_target/100:.2f}€\n"
     summary += f"\n🔔 Te notificaré cuando encuentre precios interesantes.\n\n{iata_link}"
     # Limpiar datos temporales
     context.user_data.clear()
@@ -513,9 +525,9 @@ async def create_alert_api_call(update: Update, context: ContextTypes.DEFAULT_TY
     reply_markup = InlineKeyboardMarkup(keyboard)
     # Detectar si viene de callback o mensaje
     if hasattr(update, 'callback_query') and update.callback_query:
-        await update.callback_query.edit_message_text(summary, reply_markup=reply_markup, parse_mode='Markdown')
+        await update.callback_query.edit_message_text(summary, reply_markup=reply_markup, parse_mode='HTML')
     else:
-        await update.message.reply_text(summary, reply_markup=reply_markup, parse_mode='Markdown')
+        await update.message.reply_text(summary, reply_markup=reply_markup, parse_mode='HTML')
 
 # ============================================================================
 # COMANDO: /cancel
