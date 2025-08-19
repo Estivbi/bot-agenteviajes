@@ -154,7 +154,11 @@ Te avisaré automáticamente cuando encuentre:
 
 💡 Consejos:
 • Usa códigos IATA (MAD, BCN, LHR, etc.)
+• Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA
+• Las alertas se revisan automáticamente
+• Puedes tener múltiples alertas activas
 
+¿Qué te gustaría hacer?
     """
     help_text = """
 🤖 Comandos disponibles:
@@ -236,7 +240,7 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text(message_text, reply_markup=reply_markup)
         return
 
-    message = "📋 Tus alertas activas:\n\n"
+    message = "📋 <b>Tus alertas activas:</b><br><br>"
     
     for i, alert in enumerate(alerts, 1):
         origin = alert["origin"]
@@ -244,17 +248,13 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         date_from = alert["date_from"]
         date_to = alert["date_to"]
         price_target = alert["price_target_cents"]
-        
-        message += f"{i}. {origin} → {destination}\n"
-        message += f"📅 Salida: {date_from}\n"
-        
+        message += f"{i}. {origin} → {destination}<br>"
+        message += f"📅 Salida: {date_from}<br>"
         if date_to:
-            message += f"🔄 Regreso: {date_to}\n"
-        
+            message += f"🔄 Regreso: {date_to}<br>"
         if price_target:
-            message += f"💰 Precio objetivo: {price_target/100:.2f}€\n"
-        
-        message += f"🆔 ID: {alert['id']}\n\n"
+            message += f"💰 Precio objetivo: {price_target/100:.2f}€<br>"
+        message += f"🆔 ID: {alert['id']}<br><br>"
 
     # Agregar botones para gestionar alertas
     keyboard = [
@@ -265,9 +265,9 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     
     # Determinar si viene de callback o comando directo
     if update.callback_query:
-        await update.callback_query.edit_message_text(message, reply_markup=reply_markup)
+        await update.callback_query.edit_message_text(message, reply_markup=reply_markup, parse_mode='HTML')
     else:
-        await update.message.reply_text(message, reply_markup=reply_markup)
+        await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='HTML')
 
 # ============================================================================
 # CONVERSACIÓN: CREAR ALERTA
@@ -277,28 +277,19 @@ async def start_create_alert(update: Update, context: ContextTypes.DEFAULT_TYPE)
     Inicia la conversación para crear una nueva alerta.
     """
     query = update.callback_query
-    iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
+    iata_link = '<a href="https://www.iata.org/en/publications/directories/code-search/">Consulta la lista completa de códigos IATA aquí</a>'
+    mensaje = (
+        "🛫 <b>Crear Nueva Alerta</b><br><br>"
+        "Por favor, ingresa el aeropuerto de <b>origen</b> (código IATA):<br>"
+        "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)<br><br>"
+        f"{iata_link}<br><br>"
+        "Usa /cancel para cancelar."
+    )
     if query:
         await query.answer()
-        await query.edit_message_text(
-            "🛫 **Crear Nueva Alerta**\n\n"
-            "Por favor, ingresa el aeropuerto de **origen** (código IATA):\n"
-            "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)\n\n"
-            f"{iata_link}\n\n"
-            "Usa /cancel para cancelar.",
-            parse_mode='Markdown'
-        )
+        await query.edit_message_text(mensaje, parse_mode='HTML')
     else:
-        await update.message.reply_text(
-            "🛫 **Crear Nueva Alerta**\n\n"
-            "Por favor, ingresa el aeropuerto de **origen** (código IATA):\n"
-            "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)\n\n"
-            f"{iata_link}\n\n"
-            "Usa /cancel para cancelar.",
-            parse_mode='Markdown'
-        )
-        iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/C%C3%B3digo_de_aeropuertos_de_IATA"
-    
+        await update.message.reply_text(mensaje, parse_mode='HTML')
     return ORIGIN
 
 async def get_origin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -306,24 +297,21 @@ async def get_origin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     Recibe el aeropuerto de origen y pide el destino.
     """
     origin = update.message.text.upper().strip()
-    
     # Validar código IATA (3 letras)
     if len(origin) != 3 or not origin.isalpha():
         await update.message.reply_text(
             "❌ Por favor ingresa un código IATA válido de 3 letras (ej: MAD, BCN, LHR)."
         )
         return ORIGIN
-    
     context.user_data['origin'] = origin
-    iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
+    iata_link = '<a href="https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA">Consulta la lista completa de códigos IATA aquí</a>'
     mensaje = (
-        f"✅ Origen: **{origin}**\n\n"
-        "Ahora ingresa el aeropuerto de **destino** (código IATA):\n"
-        "Ejemplo: BCN (Barcelona), LHR (Londres), CDG (París)\n\n"
+        f"✅ Origen: <b>{origin}</b><br><br>"
+        "Ahora ingresa el aeropuerto de <b>destino</b> (código IATA):<br>"
+        "Ejemplo: BCN (Barcelona), LHR (Londres), CDG (París)<br><br>"
         f"{iata_link}"
     )
-    await update.message.reply_text(mensaje, parse_mode='Markdown')
-    
+    await update.message.reply_text(mensaje, parse_mode='HTML')
     return DESTINATION
 
 async def get_destination(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -331,28 +319,24 @@ async def get_destination(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     Recibe el aeropuerto de destino y pide la fecha de salida.
     """
     destination = update.message.text.upper().strip()
-    
     # Validar código IATA
     if len(destination) != 3 or not destination.isalpha():
         await update.message.reply_text(
             "❌ Por favor ingresa un código IATA válido de 3 letras (ej: MAD, BCN, LHR)."
         )
         return DESTINATION
-    
     if destination == context.user_data['origin']:
         await update.message.reply_text(
             "❌ El destino no puede ser igual al origen. Ingresa un destino diferente."
         )
         return DESTINATION
-    
     context.user_data['destination'] = destination
     await update.message.reply_text(
-        f"✅ Destino: **{destination}**\n\n"
-        f"Ingresa la **fecha de salida** (formato: DD/MM/YYYY):\n"
+        f"✅ Destino: <b>{destination}</b><br><br>"
+        f"Ingresa la <b>fecha de salida</b> (formato: DD/MM/YYYY):<br>"
         f"Ejemplo: 15/09/2025",
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
-    
     return DATE_FROM
 
 async def get_date_from(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -360,36 +344,29 @@ async def get_date_from(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     Recibe la fecha de salida y pide si quiere fecha de regreso.
     """
     date_text = update.message.text.strip()
-    
     try:
         # Intentar parsear la fecha
         date_from = datetime.strptime(date_text, "%d/%m/%Y").date()
-        
         # Verificar que sea una fecha futura
         if date_from <= date.today():
             await update.message.reply_text(
                 "❌ La fecha debe ser posterior a hoy. Ingresa una fecha futura."
             )
             return DATE_FROM
-        
         context.user_data['date_from'] = date_from
-        
         # Preguntar por fecha de regreso
         keyboard = [
             [InlineKeyboardButton("✈️ Solo ida", callback_data="no_return")],
             [InlineKeyboardButton("🔄 Ida y vuelta", callback_data="with_return")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
         await update.message.reply_text(
-            f"✅ Fecha de salida: **{date_from.strftime('%d/%m/%Y')}**\n\n"
+            f"✅ Fecha de salida: <b>{date_from.strftime('%d/%m/%Y')}</b><br><br>"
             f"¿Necesitas vuelo de regreso?",
             reply_markup=reply_markup,
-            parse_mode='Markdown'
+            parse_mode='HTML'
         )
-        
         return DATE_TO
-        
     except ValueError:
         await update.message.reply_text(
             "❌ Formato de fecha incorrecto. Usa el formato DD/MM/YYYY (ej: 15/09/2025)."
@@ -406,9 +383,9 @@ async def handle_return_date(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if query.data == "no_return":
         context.user_data['date_to'] = None
         await query.edit_message_text(
-            "✅ Vuelo de **solo ida**\n\n"
-            "Ingresa tu **precio objetivo máximo** en euros (opcional):\n"
-            "Ejemplo: 150\n\n"
+            "✅ Vuelo de **solo ida**<br><br>"
+            "Ingresa tu **precio objetivo máximo** en euros (opcional):<br>"
+            "Ejemplo: 150<br><br>"
             "O escribe 'skip' para omitir.",
             parse_mode='Markdown'
         )
@@ -416,7 +393,7 @@ async def handle_return_date(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     elif query.data == "with_return":
         await query.edit_message_text(
-            "Ingresa la **fecha de regreso** (formato: DD/MM/YYYY):\n"
+            "Ingresa la **fecha de regreso** (formato: DD/MM/YYYY):<br>"
             "Debe ser posterior a la fecha de salida."
         )
         return DATE_TO
@@ -440,9 +417,9 @@ async def get_date_to(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data['date_to'] = date_to
         
         await update.message.reply_text(
-            f"✅ Fecha de regreso: **{date_to.strftime('%d/%m/%Y')}**\n\n"
-            f"Ingresa tu **precio objetivo máximo** en euros (opcional):\n"
-            f"Ejemplo: 150\n\n"
+            f"✅ Fecha de regreso: **{date_to.strftime('%d/%m/%Y')}**<br><br>"
+            f"Ingresa tu **precio objetivo máximo** en euros (opcional):<br>"
+            f"Ejemplo: 150<br><br>"
             f"O escribe 'skip' para omitir.",
             parse_mode='Markdown'
         )
@@ -586,7 +563,7 @@ async def show_delete_alerts_menu(update: Update, context: ContextTypes.DEFAULT_
         )
         return
 
-    message = "🗑️ Selecciona la alerta que quieres eliminar:\n\n"
+    message = "🗑️ Selecciona la alerta que quieres eliminar:<br><br>"
     keyboard = []
     
     for i, alert in enumerate(alerts, 1):
@@ -596,7 +573,7 @@ async def show_delete_alerts_menu(update: Update, context: ContextTypes.DEFAULT_
         
         # Línea de información de la alerta
         alert_info = f"{i}. {origin} → {destination} ({date_from})"
-        message += f"{alert_info}\n"
+        message += f"{alert_info}<br>"
         
         # Botón para eliminar esta alerta específica
         keyboard.append([InlineKeyboardButton(f"❌ Eliminar #{i}", callback_data=f"delete_{alert['id']}")])
@@ -606,7 +583,7 @@ async def show_delete_alerts_menu(update: Update, context: ContextTypes.DEFAULT_
     keyboard.append([InlineKeyboardButton("🏠 Menú Principal", callback_data="start")])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.edit_message_text(message, reply_markup=reply_markup)
+    await update.callback_query.edit_message_text(message, reply_markup=reply_markup, parse_mode='HTML')
 
 async def delete_alert(update: Update, context: ContextTypes.DEFAULT_TYPE, alert_id: str) -> None:
     """
@@ -629,14 +606,14 @@ async def delete_alert(update: Update, context: ContextTypes.DEFAULT_TYPE, alert
         return
     
     # Confirmar eliminación exitosa
-    success_message = "✅ Alerta eliminada exitosamente.\n\n¿Qué te gustaría hacer ahora?"
+    success_message = "✅ Alerta eliminada exitosamente.<br><br>¿Qué te gustaría hacer ahora?"
     keyboard = [
         [InlineKeyboardButton("📋 Ver Mis Alertas", callback_data="my_alerts")],
         [InlineKeyboardButton("🆕 Crear Nueva Alerta", callback_data="create_alert")],
         [InlineKeyboardButton("🏠 Menú Principal", callback_data="start")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.edit_message_text(success_message, reply_markup=reply_markup)
+    await update.callback_query.edit_message_text(success_message, reply_markup=reply_markup, parse_mode='HTML')
 
 # ============================================================================
 # MANEJADOR DE BOTONES INLINE
