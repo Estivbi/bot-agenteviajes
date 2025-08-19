@@ -154,6 +154,32 @@ Te avisaré automáticamente cuando encuentre:
 
 💡 Consejos:
 • Usa códigos IATA (MAD, BCN, LHR, etc.)
+
+    """
+    help_text = """
+🤖 Comandos disponibles:
+
+/start - Iniciar el bot y registro
+/crear_alerta - Crear una nueva alerta de vuelo
+/mis_alertas - Ver todas tus alertas activas
+/help - Mostrar esta ayuda
+
+📝 Cómo crear una alerta:
+1. Usa /crear_alerta
+2. Ingresa origen (ej: MAD)
+3. Ingresa destino (ej: BCN)
+4. Selecciona fecha de salida
+5. Opcionalmente: fecha de regreso, precio máximo
+
+🔔 Notificaciones:
+Te avisaré automáticamente cuando encuentre:
+• Precios por debajo de tu objetivo
+• Tendencias de precios interesantes
+• Ofertas especiales
+
+💡 Consejos:
+• Usa códigos IATA (MAD, BCN, LHR, etc.)
+• Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA
 • Las alertas se revisan automáticamente
 • Puedes tener múltiples alertas activas
 
@@ -251,12 +277,14 @@ async def start_create_alert(update: Update, context: ContextTypes.DEFAULT_TYPE)
     Inicia la conversación para crear una nueva alerta.
     """
     query = update.callback_query
+    iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
     if query:
         await query.answer()
         await query.edit_message_text(
             "🛫 **Crear Nueva Alerta**\n\n"
             "Por favor, ingresa el aeropuerto de **origen** (código IATA):\n"
             "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)\n\n"
+            f"{iata_link}\n\n"
             "Usa /cancel para cancelar.",
             parse_mode='Markdown'
         )
@@ -265,9 +293,11 @@ async def start_create_alert(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "🛫 **Crear Nueva Alerta**\n\n"
             "Por favor, ingresa el aeropuerto de **origen** (código IATA):\n"
             "Ejemplo: MAD (Madrid), BCN (Barcelona), LHR (Londres)\n\n"
+            f"{iata_link}\n\n"
             "Usa /cancel para cancelar.",
             parse_mode='Markdown'
         )
+        iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/C%C3%B3digo_de_aeropuertos_de_IATA"
     
     return ORIGIN
 
@@ -285,9 +315,11 @@ async def get_origin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ORIGIN
     
     context.user_data['origin'] = origin
+    iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
     await update.message.reply_text(
         f"✅ Origen: **{origin}**\n\n"
-        f"Ahora ingresa el aeropuerto de **destino** (código IATA):",
+        f"Ahora ingresa el aeropuerto de **destino** (código IATA):\n\n"
+        f"{iata_link}",
         parse_mode='Markdown'
     )
     
