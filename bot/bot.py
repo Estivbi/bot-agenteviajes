@@ -39,9 +39,9 @@ API_BASE_URL = os.getenv('BACKEND_URL', "https://backend-production-2b7f.up.rail
 # Estados para conversaciones
 ORIGIN, DESTINATION, DATE_FROM, DATE_TO, PRICE_TARGET, MAX_STOPS = range(6)
 
-# ============================================================================
+
 # FUNCIONES AUXILIARES PARA API
-# ============================================================================
+
 def call_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Dict[str, Any]:
     """
     Función auxiliar para llamar a nuestro backend API.
