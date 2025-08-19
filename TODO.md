@@ -1,6 +1,4 @@
-
-
-que sugiera precios de fechas cercanas a las que le dices si no hubiera ofertas por el precio indicado
+- [] Esto para meterle IA: que sugiera precios de fechas cercanas a las que le dices si no hubiera ofertas por el precio indicado
 
 ---
 
