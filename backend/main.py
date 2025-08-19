@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 import datetime
-import db
+from backend import db
 import json
 import os
 from dotenv import load_dotenv
