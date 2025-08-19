@@ -33,8 +33,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# URL del backend API
-API_BASE_URL = os.getenv('API_BASE_URL', "http://localhost:8000")
+# URL del backend API. ahora esta el de prod pero se puede cambiar al local cambiando la url, mira el .env
+API_BASE_URL = os.getenv('BACKEND_URL', "https://backend-production-2b7f.up.railway.app")
 
 # Estados para conversaciones
 ORIGIN, DESTINATION, DATE_FROM, DATE_TO, PRICE_TARGET, MAX_STOPS = range(6)
