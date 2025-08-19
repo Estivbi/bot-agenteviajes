@@ -316,12 +316,13 @@ async def get_origin(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     context.user_data['origin'] = origin
     iata_link = "Puedes consultar la lista completa de códigos IATA aquí: https://es.wikipedia.org/wiki/Anexo:Aeropuertos_con_c%C3%B3digo_IATA"
-    await update.message.reply_text(
+    mensaje = (
         f"✅ Origen: **{origin}**\n\n"
-        f"Ahora ingresa el aeropuerto de **destino** (código IATA):\n\n"
-        f"{iata_link}",
-        parse_mode='Markdown'
+        "Ahora ingresa el aeropuerto de **destino** (código IATA):\n"
+        "Ejemplo: BCN (Barcelona), LHR (Londres), CDG (París)\n\n"
+        f"{iata_link}"
     )
+    await update.message.reply_text(mensaje, parse_mode='Markdown')
     
     return DESTINATION
 
